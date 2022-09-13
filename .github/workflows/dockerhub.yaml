@@ -24,41 +24,8 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -
-        name: Build and push for k9s-with-gotty
+      - name: Build and push
         uses: docker/build-push-action@v2
         with:
-          context: k9s-with-gotty/
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/k9s-with-gotty:latest
-      -
-        name: Build and push for mycat
-        uses: docker/build-push-action@v2
-        with:
-          context: mycat
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/mycat:latest
-      - name: Build and push for derper
-        uses: docker/build-push-action@v2
-        with:
-          context: derper
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/derper:latest
-      - name: Build and push for webproc:singlefile
-        uses: docker/build-push-action@v2
-        with:
-          context: webproc/example/singlefile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/webproc:singlefile
-      - name: Build and push for subconverter
-        uses: docker/build-push-action@v2
-        with:
-          context: subconverter
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/subconverter:latest
-      - name: Build and push for pg_rman
-        uses: docker/build-push-action@v2
-        with:
-          context: pg_rman
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/pg_rman:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/mycsi:latest
