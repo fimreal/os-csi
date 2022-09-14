@@ -22,12 +22,12 @@ type Config struct {
 	AccessKeyID     string
 	SecretAccessKey string
 	Endpoint        string
-	Bucket          string
+	BucketName      string
 	Mounter         string
 }
 
 type FSMeta struct {
-	// BucketName    string   `json:"Name"`
+	BucketName    string   `json:"BucketName"`
 	Prefix        string   `json:"Prefix"`
 	Mounter       string   `json:"Mounter"`
 	MountOptions  []string `json:"MountOptions"`
@@ -42,7 +42,7 @@ func NewClient(cfg *Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	u.Host = cfg.Bucket + "." + u.Host
+	u.Host = cfg.BucketName + "." + u.Host
 
 	cosClient := cos.NewClient(
 		&cos.BaseURL{BucketURL: u},
@@ -64,14 +64,16 @@ func NewClient(cfg *Config) (*Client, error) {
 	return client, nil
 }
 
-func NewClientFromSecret(secret map[string]string) (*Client, error) {
+func NewClientFromSecret(secret map[string]string, bucketName string) (*Client, error) {
+
 	return NewClient(&Config{
 		AccessKeyID:     secret["accessKeyID"],
 		SecretAccessKey: secret["secretAccessKey"],
 		Endpoint:        secret["endpoint"],
-		Bucket:          secret["bucket"],
-		// Mounter is set in the volume preferences, not secrets
-		Mounter: "",
+		// BucketName:      secret["bucket"],
+		// Mounter and BucketName are set in the volume preferences, not secrets
+		BucketName: bucketName,
+		Mounter:    "",
 	})
 }
 

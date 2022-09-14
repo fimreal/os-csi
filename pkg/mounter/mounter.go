@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/fimreal/goutils/ezap"
-	"github.com/fimreal/tencent-cos-csi-driver/pkg/cos"
+	"github.com/fimreal/os-csi/pkg/cos"
 	"github.com/golang/glog"
 	"github.com/mitchellh/go-ps"
 	"k8s.io/utils/mount"
@@ -26,7 +26,8 @@ type Mounter interface {
 }
 
 const (
-	cosfsMounterType = "cosfs"
+	cosfsMounterType   = "cosfs"
+	goosefsMounterType = "goosefs"
 	// rcloneMounterType  = "rclone"
 	TypeKey    = "mounter"
 	BucketKey  = "bucket"
@@ -43,6 +44,9 @@ func New(meta *cos.FSMeta, cfg *cos.Config) (Mounter, error) {
 	switch mounter {
 	case cosfsMounterType:
 		return newCosfsMounter(meta, cfg)
+
+	case goosefsMounterType:
+		return newGoosefsMounter(meta, cfg)
 
 	// case geesefsMounterType:
 	// 	return newGeeseFSMounter(meta, cfg)

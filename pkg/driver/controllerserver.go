@@ -2,17 +2,13 @@ package driver
 
 import (
 	"context"
-	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
-	"io"
 	"path"
-	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/fimreal/goutils/ezap"
-	"github.com/fimreal/tencent-cos-csi-driver/pkg/cos"
-	"github.com/fimreal/tencent-cos-csi-driver/pkg/mounter"
+	"github.com/fimreal/os-csi/pkg/cos"
+	"github.com/fimreal/os-csi/pkg/mounter"
 	csicommon "github.com/kubernetes-csi/drivers/pkg/csi-common"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -57,7 +53,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 
 	ezap.Infof("Got a request to create volume %s", volumeID)
 
-	client, err := cos.NewClientFromSecret(req.GetSecrets())
+	client, err := cos.NewClientFromSecret(req.GetSecrets(), bucketName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize cos client: %s", err)
 	}
@@ -89,7 +85,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 
 func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
 	volumeID := req.GetVolumeId()
-	_, prefix := volumeIDToBucketPrefix(volumeID)
+	bucketName, prefix := VolumeIDToBucketPrefix(volumeID)
 
 	// Check arguments
 	if len(volumeID) == 0 {
@@ -102,7 +98,7 @@ func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 	}
 	ezap.Infof("Deleting volume %s", volumeID)
 
-	client, err := cos.NewClientFromSecret(req.GetSecrets())
+	client, err := cos.NewClientFromSecret(req.GetSecrets(), bucketName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize client: %s", err)
 	}
@@ -116,18 +112,21 @@ func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 }
 
 func (cs *controllerServer) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
+	volumeID := req.GetVolumeId()
+	bucketName, _ := VolumeIDToBucketPrefix(volumeID)
 	// Check arguments
-	if len(req.GetVolumeId()) == 0 {
+	if len(volumeID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume ID missing in request")
 	}
 	if req.GetVolumeCapabilities() == nil {
 		return nil, status.Error(codes.InvalidArgument, "Volume capabilities missing in request")
 	}
 
-	client, err := cos.NewClientFromSecret(req.GetSecrets())
+	client, err := cos.NewClientFromSecret(req.GetSecrets(), bucketName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize client: %s", err)
 	}
+
 	exists, err := client.BucketExists()
 	if err != nil {
 		return nil, err
@@ -181,14 +180,4 @@ func (cs *controllerServer) ListVolumes(_ context.Context, _ *csi.ListVolumesReq
 
 func (cs *controllerServer) GetCapacity(_ context.Context, _ *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "Unimplemented GetCapacity")
-}
-
-func sanitizeVolumeID(volumeID string) string {
-	volumeID = strings.ToLower(volumeID)
-	if len(volumeID) > 63 {
-		h := sha1.New()
-		io.WriteString(h, volumeID)
-		volumeID = hex.EncodeToString(h.Sum(nil))
-	}
-	return volumeID
 }

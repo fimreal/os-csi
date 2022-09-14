@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/fimreal/goutils/ezap"
-	"github.com/fimreal/tencent-cos-csi-driver/pkg/driver"
+	"github.com/fimreal/os-csi/pkg/driver"
 )
 
 var (

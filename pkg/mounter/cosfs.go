@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/fimreal/tencent-cos-csi-driver/pkg/cos"
+	"github.com/fimreal/os-csi/pkg/cos"
 )
 
 // Implements Mounter
@@ -23,8 +23,8 @@ func newCosfsMounter(meta *cos.FSMeta, cfg *cos.Config) (Mounter, error) {
 	return &cosfsMounter{
 		meta:          meta,
 		url:           cfg.Endpoint,
-		bucket:        cfg.Bucket,
-		pwFileContent: cfg.Bucket + ":" + cfg.AccessKeyID + ":" + cfg.SecretAccessKey,
+		bucket:        meta.BucketName,
+		pwFileContent: meta.BucketName + ":" + cfg.AccessKeyID + ":" + cfg.SecretAccessKey,
 	}, nil
 }
 

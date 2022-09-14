@@ -1,4 +1,4 @@
-module github.com/fimreal/tencent-cos-csi-driver
+module github.com/fimreal/os-csi
 
 go 1.19
 
