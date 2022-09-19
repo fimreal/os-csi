@@ -7,38 +7,20 @@ import (
 	"strings"
 
 	"github.com/fimreal/goutils/ezap"
+	"github.com/fimreal/os-csi/pkg/mounter"
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
 type Client struct {
-	Config *Config
+	Config *mounter.Config
 	cos    *cos.Client
 	ctx    context.Context
 }
 
-// Config holds values to configure the driver
-type Config struct {
-	AccessKeyID     string
-	SecretAccessKey string
-	Endpoint        string
-	BucketName      string
-	Mounter         string
-}
+func NewClient(cfg *mounter.Config) (*Client, error) {
 
-type FSMeta struct {
-	BucketName    string   `json:"BucketName"`
-	Prefix        string   `json:"Prefix"`
-	Mounter       string   `json:"Mounter"`
-	MountOptions  []string `json:"MountOptions"`
-	CapacityBytes int64    `json:"CapacityBytes"`
-}
-
-func NewClient(cfg *Config) (*Client, error) {
-	var client = &Client{}
-
-	client.Config = cfg
-	u, err := url.Parse(client.Config.Endpoint)
+	u, err := url.Parse(cfg.Endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -48,8 +30,8 @@ func NewClient(cfg *Config) (*Client, error) {
 		&cos.BaseURL{BucketURL: u},
 		&http.Client{
 			Transport: &cos.AuthorizationTransport{
-				SecretID:  client.Config.AccessKeyID,
-				SecretKey: client.Config.SecretAccessKey,
+				SecretID:  cfg.AccessKeyID,
+				SecretKey: cfg.SecretAccessKey,
 				Transport: &debug.DebugRequestTransport{
 					RequestHeader:  true,
 					RequestBody:    true,
@@ -59,22 +41,11 @@ func NewClient(cfg *Config) (*Client, error) {
 			},
 		})
 
-	client.cos = cosClient
-	client.ctx = context.Background()
-	return client, nil
-}
-
-func NewClientFromSecret(secret map[string]string, bucketName string) (*Client, error) {
-
-	return NewClient(&Config{
-		AccessKeyID:     secret["accessKeyID"],
-		SecretAccessKey: secret["secretAccessKey"],
-		Endpoint:        secret["endpoint"],
-		// BucketName:      secret["bucket"],
-		// Mounter and BucketName are set in the volume preferences, not secrets
-		BucketName: bucketName,
-		Mounter:    "",
-	})
+	return &Client{
+		Config: cfg,
+		cos:    cosClient,
+		ctx:    context.Background(),
+	}, nil
 }
 
 func (c *Client) BucketExists() (bool, error) {
@@ -121,4 +92,8 @@ func (c *Client) RemovePrefix(prefix string) error {
 	}
 
 	return err
+}
+
+func (c *Client) GetConfig() *mounter.Config {
+	return c.Config
 }

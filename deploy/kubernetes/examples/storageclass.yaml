@@ -2,18 +2,18 @@
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
-  name: csi-cos
-provisioner: csi.cosfs
+  name: csi-os
+provisioner: csi.os
+# reclaimPolicy: Retain
 parameters:
-  mounter: cosfs
+  # -d,--debug  set log level to debug 
   options: ""
-  # to use an existing bucket, specify it here:
-  bucket: bucketname
-  csi.storage.k8s.io/provisioner-secret-name: csi-cos-secret
+  bucket: <bucketname>
+  csi.storage.k8s.io/provisioner-secret-name: csi-os-secret
   csi.storage.k8s.io/provisioner-secret-namespace: kube-system
-  csi.storage.k8s.io/controller-publish-secret-name: csi-cos-secret
+  csi.storage.k8s.io/controller-publish-secret-name: csi-os-secret
   csi.storage.k8s.io/controller-publish-secret-namespace: kube-system
-  csi.storage.k8s.io/node-stage-secret-name: csi-cos-secret
+  csi.storage.k8s.io/node-stage-secret-name: csi-os-secret
   csi.storage.k8s.io/node-stage-secret-namespace: kube-system
-  csi.storage.k8s.io/node-publish-secret-name: csi-cos-secret
+  csi.storage.k8s.io/node-publish-secret-name: csi-os-secret
   csi.storage.k8s.io/node-publish-secret-namespace: kube-system

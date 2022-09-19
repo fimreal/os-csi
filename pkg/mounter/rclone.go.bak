@@ -18,6 +18,7 @@ type rcloneMounter struct {
 }
 
 const (
+	rcloneMounterType  = "rclone"
 	rcloneCmd = "rclone"
 )
 

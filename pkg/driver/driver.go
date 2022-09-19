@@ -17,7 +17,7 @@ type driver struct {
 
 var (
 	driverVersion = "v0.1.0"
-	driverName    = "csi.cosfs"
+	driverName    = "csi.os"
 )
 
 // New initializes the driver
@@ -35,10 +35,9 @@ func NewDriver(endpoint string, nodeID string) (*driver, error) {
 }
 
 func (d *driver) Start() {
-	ezap.Infof("Driver: %v ", driverName)
-	ezap.Infof("Version: %v ", driverVersion)
+	ezap.Infof("Driver: %s ", driverName)
+	ezap.Infof("Version: %s ", driverVersion)
 	// Initialize default library driver
-
 	d.driver.AddControllerServiceCapabilities([]csi.ControllerServiceCapability_RPC_Type{csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME})
 	d.driver.AddVolumeCapabilityAccessModes([]csi.VolumeCapability_AccessMode_Mode{csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER})
 

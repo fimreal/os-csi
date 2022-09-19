@@ -4,7 +4,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: csi-cos-pvc
+  name: csi-os-pvc
   namespace: default
 spec:
   accessModes:
@@ -12,4 +12,4 @@ spec:
   resources:
     requests:
       storage: 5Gi
-  storageClassName: csi-cos
+  storageClassName: csi-os

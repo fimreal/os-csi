@@ -1,17 +1,17 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: csi-cos-test-nginx
+  name: csi-os-test-nginx
   namespace: default
 spec:
   containers:
-    - name: csi-cos-test-nginx
+    - name: csi-os-test-nginx
       image: nginx:alpine
       volumeMounts:
-        - mountPath: /usr/share/nginx/html/cos
+        - mountPath: /usr/share/nginx/html/os
           name: webroot
   volumes:
     - name: webroot
       persistentVolumeClaim:
-        claimName: csi-cos-pvc
+        claimName: csi-os-pvc
         readOnly: false

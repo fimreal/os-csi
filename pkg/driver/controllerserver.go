@@ -7,8 +7,8 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/fimreal/goutils/ezap"
-	"github.com/fimreal/os-csi/pkg/cos"
 	"github.com/fimreal/os-csi/pkg/mounter"
+	"github.com/fimreal/os-csi/pkg/osclient"
 	csicommon "github.com/kubernetes-csi/drivers/pkg/csi-common"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -25,48 +25,55 @@ func newControllerServer(d *csicommon.CSIDriver) *controllerServer {
 }
 
 func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
-	params := req.GetParameters()
-	capacityBytes := req.GetCapacityRange().GetRequiredBytes()
-	volumeID := sanitizeVolumeID(req.GetName())
-	bucketName := volumeID
-	prefix := ""
+	params := req.Parameters
+	capacityBytes := req.CapacityRange.RequiredBytes
+	bucketName := params[mounter.BucketKey]
+	volumeID := sanitizeVolumeID(req.Name)
 
-	// check if bucket name is overridden
-	if params[mounter.BucketKey] != "" {
-		bucketName = params[mounter.BucketKey]
-		prefix = volumeID
-		volumeID = path.Join(bucketName, prefix)
+	// Check arguments
+	if req.Name == "" {
+		return nil, status.Error(codes.InvalidArgument, "volume name is empty")
 	}
-
+	if len(req.VolumeCapabilities) <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "volume has no capabilities")
+	}
 	if err := cs.Driver.ValidateControllerServiceRequest(csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME); err != nil {
 		ezap.Errorf("invalid create volume req: %v", req)
 		return nil, err
 	}
 
-	// Check arguments
-	if len(volumeID) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Name missing in request")
-	}
-	if req.GetVolumeCapabilities() == nil {
-		return nil, status.Error(codes.InvalidArgument, "Volume Capabilities missing in request")
-	}
-
 	ezap.Infof("Got a request to create volume %s", volumeID)
 
-	client, err := cos.NewClientFromSecret(req.GetSecrets(), bucketName)
+	// 使用 sdk 构造连接
+	secret := req.Secrets
+	cfg := &mounter.Config{
+		AccessKeyID:     secret["accessKeyID"],
+		SecretAccessKey: secret["secretAccessKey"],
+		Endpoint:        secret["endpoint"],
+		BucketName:      bucketName,
+		Mounter:         secret["mounter"],
+		// Meta: &mounter.FSMeta{
+		// 	Prefix:        volumeID,
+		// 	MountOptions:  []string{},
+		// 	CapacityBytes: capacityBytes,
+		// }
+	}
+	client, err := osclient.New(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize cos client: %s", err)
+		return nil, fmt.Errorf("failed to initialize osclient: %s", err)
 	}
 
+	// 检查 bucket 是否存在
 	exists, err := client.BucketExists()
 	if err != nil {
 		return nil, fmt.Errorf("failed to check if bucket %s exists: %v", bucketName, err)
 	} else if !exists {
-		return nil, fmt.Errorf("failed to find bucket %s", bucketName)
+		return nil, fmt.Errorf("not find bucket %s", bucketName)
 	}
 
-	if err = client.CreatePrefix(prefix); err != nil {
-		return nil, fmt.Errorf("failed to create prefix dir %s: %v", prefix, err)
+	// 尝试以 pvc 名称创建目录
+	if err = client.CreatePrefix(volumeID); err != nil {
+		return nil, fmt.Errorf("failed to create prefix dir %s: %v", volumeID, err)
 	}
 
 	ezap.Infof("create volume %s", volumeID)
@@ -74,7 +81,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 
 	response := &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
-			VolumeId:      volumeID,
+			VolumeId:      path.Join(bucketName, volumeID),
 			CapacityBytes: capacityBytes,
 			VolumeContext: params,
 		}}
@@ -84,7 +91,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 }
 
 func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
-	volumeID := req.GetVolumeId()
+	volumeID := req.VolumeId
 	bucketName, prefix := VolumeIDToBucketPrefix(volumeID)
 
 	// Check arguments
@@ -96,11 +103,20 @@ func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 		ezap.Infof("Invalid delete volume req: %v", req)
 		return nil, err
 	}
-	ezap.Infof("Deleting volume %s", volumeID)
+	ezap.Infof("Deleting volume %s", prefix)
 
-	client, err := cos.NewClientFromSecret(req.GetSecrets(), bucketName)
+	// 使用 sdk 构造连接
+	secret := req.Secrets
+	cfg := &mounter.Config{
+		AccessKeyID:     secret["accessKeyID"],
+		SecretAccessKey: secret["secretAccessKey"],
+		Endpoint:        secret["endpoint"],
+		BucketName:      bucketName,
+		Mounter:         secret["mounter"],
+	}
+	client, err := osclient.New(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize client: %s", err)
+		return nil, fmt.Errorf("failed to initialize osclient: %s", err)
 	}
 
 	if err := client.RemovePrefix(prefix); err != nil {
@@ -112,19 +128,29 @@ func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 }
 
 func (cs *controllerServer) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
-	volumeID := req.GetVolumeId()
+	volumeID := req.VolumeId
 	bucketName, _ := VolumeIDToBucketPrefix(volumeID)
+
 	// Check arguments
 	if len(volumeID) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Volume ID missing in request")
+		return nil, status.Error(codes.InvalidArgument, "volumeID missing in request")
 	}
-	if req.GetVolumeCapabilities() == nil {
-		return nil, status.Error(codes.InvalidArgument, "Volume capabilities missing in request")
+	if len(req.VolumeCapabilities) <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "volume has no capabilities")
 	}
 
-	client, err := cos.NewClientFromSecret(req.GetSecrets(), bucketName)
+	// 使用 sdk 构造连接
+	secret := req.Secrets
+	cfg := &mounter.Config{
+		AccessKeyID:     secret["accessKeyID"],
+		SecretAccessKey: secret["secretAccessKey"],
+		Endpoint:        secret["endpoint"],
+		BucketName:      bucketName,
+		Mounter:         secret["mounter"],
+	}
+	client, err := osclient.New(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize client: %s", err)
+		return nil, fmt.Errorf("failed to initialize osclient: %s", err)
 	}
 
 	exists, err := client.BucketExists()
@@ -134,7 +160,7 @@ func (cs *controllerServer) ValidateVolumeCapabilities(ctx context.Context, req 
 
 	if !exists {
 		// return an error if the bucket of the requested volume does not exist
-		return nil, status.Error(codes.NotFound, fmt.Sprintf("bucket of volume with id %s does not exist", req.GetVolumeId()))
+		return nil, status.Error(codes.NotFound, "bucket of volume with id "+volumeID+" does not exist")
 	}
 
 	supportedAccessMode := &csi.VolumeCapability_AccessMode{

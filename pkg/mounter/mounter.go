@@ -11,11 +11,28 @@ import (
 	"time"
 
 	"github.com/fimreal/goutils/ezap"
-	"github.com/fimreal/os-csi/pkg/cos"
 	"github.com/golang/glog"
 	"github.com/mitchellh/go-ps"
 	"k8s.io/utils/mount"
 )
+
+type FSMeta struct {
+	// BucketName string `json:"BucketName"`
+	Prefix string `json:"Prefix"`
+	// Mounter       string   `json:"Mounter"`
+	MountOptions  []string `json:"MountOptions"`
+	CapacityBytes int64    `json:"CapacityBytes"`
+}
+
+// Config holds values to configure the driver
+type Config struct {
+	AccessKeyID     string
+	SecretAccessKey string
+	Endpoint        string
+	BucketName      string
+	Mounter         string
+	Meta            *FSMeta
+}
 
 // Mounter interface which can be implemented
 // by the different mounter types
@@ -26,27 +43,20 @@ type Mounter interface {
 }
 
 const (
-	cosfsMounterType   = "cosfs"
-	goosefsMounterType = "goosefs"
-	// rcloneMounterType  = "rclone"
 	TypeKey    = "mounter"
 	BucketKey  = "bucket"
 	OptionsKey = "options"
 )
 
 // New returns a new mounter depending on the mounterType parameter
-func New(meta *cos.FSMeta, cfg *cos.Config) (Mounter, error) {
-	mounter := meta.Mounter
-	// Fall back to mounterType in cfg
-	if len(meta.Mounter) == 0 {
-		mounter = cfg.Mounter
-	}
+func New(cfg *Config) (Mounter, error) {
+	mounter := cfg.Mounter
 	switch mounter {
-	case cosfsMounterType:
-		return newCosfsMounter(meta, cfg)
+	case CosfsMounterType:
+		return newCosfsMounter(cfg)
 
-	case goosefsMounterType:
-		return newGoosefsMounter(meta, cfg)
+	case OssfsMounterType:
+		return newOssfsMounter(cfg)
 
 	// case geesefsMounterType:
 	// 	return newGeeseFSMounter(meta, cfg)
@@ -58,8 +68,7 @@ func New(meta *cos.FSMeta, cfg *cos.Config) (Mounter, error) {
 	// 	return newRcloneMounter(meta, cfg)
 
 	default:
-		// default to GeeseFS
-		return newCosfsMounter(meta, cfg)
+		return nil, errors.New("not found mounterType: " + mounter)
 	}
 }
 
@@ -70,7 +79,7 @@ func fuseMount(path string, command string, args []string) error {
 
 	out, err := cmd.Output()
 	if err != nil {
-		return fmt.Errorf("error fuseMount command: %s\nargs: %s\noutput: %s", command, args, out)
+		return fmt.Errorf("error fuseMount details: \ncommand: %s\nargs: %s\noutput: %s", command, args, out)
 	}
 
 	return waitForMount(path, 10*time.Second)

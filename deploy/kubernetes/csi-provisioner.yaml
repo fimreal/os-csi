@@ -53,35 +53,21 @@ roleRef:
   name: external-provisioner-runner
   apiGroup: rbac.authorization.k8s.io
 ---
-kind: Service
-apiVersion: v1
-metadata:
-  name: csi-provisioner-cos
-  namespace: kube-system
-  labels:
-    app: csi-provisioner-cos
-spec:
-  selector:
-    app: csi-provisioner-cos
-  ports:
-    - name: csi-cos-dummy
-      port: 65535
----
 kind: StatefulSet
 apiVersion: apps/v1
 metadata:
-  name: csi-provisioner-cos
+  name: csi-provisioner-os
   namespace: kube-system
 spec:
-  serviceName: "csi-provisioner-cos"
+  serviceName: "csi-provisioner-os"
   replicas: 1
   selector:
     matchLabels:
-      app: csi-provisioner-cos
+      app: csi-provisioner-os
   template:
     metadata:
       labels:
-        app: csi-provisioner-cos
+        app: csi-provisioner-os
     spec:
       serviceAccount: csi-provisioner-sa
       tolerations:
@@ -95,11 +81,11 @@ spec:
             - "--v=4"
           env:
             - name: ADDRESS
-              value: /var/lib/kubelet/plugins/csi.cosfs/csi.sock
+              value: /var/lib/kubelet/plugins/csi.os/csi.sock
           imagePullPolicy: "IfNotPresent"
           volumeMounts:
             - name: socket-dir
-              mountPath: /var/lib/kubelet/plugins/csi.cosfs
+              mountPath: /var/lib/kubelet/plugins/csi.os
         - name: csi-attacher
           image: quay.io/k8scsi/csi-attacher:v3.0.1
           args:
@@ -107,30 +93,29 @@ spec:
             - "--csi-address=$(ADDRESS)"
           env:
             - name: ADDRESS
-              value: /var/lib/kubelet/plugins/csi.cosfs/csi.sock
+              value: /var/lib/kubelet/plugins/csi.os/csi.sock
           imagePullPolicy: "IfNotPresent"
           volumeMounts:
             - name: socket-dir
-              mountPath: /var/lib/kubelet/plugins/csi.cosfs
-        - name: csi-cos
-          image: epurs/mycsi:latest
+              mountPath: /var/lib/kubelet/plugins/csi.os
+        - name: csi-os
+          image: epurs/mycsi:cosfs-ossfs
           imagePullPolicy: Always
           args:
             - "--endpoint=$(CSI_ENDPOINT)"
             - "--nodeid=$(NODE_ID)"
-            - "--v=4"
           env:
             - name: CSI_ENDPOINT
-              value: unix:///var/lib/kubelet/plugins/csi.cosfs/csi.sock
+              value: unix:///var/lib/kubelet/plugins/csi.os/csi.sock
             - name: NODE_ID
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
           volumeMounts:
             - name: socket-dir
-              mountPath: /var/lib/kubelet/plugins/csi.cosfs
+              mountPath: /var/lib/kubelet/plugins/csi.os
       volumes:
         - name: socket-dir
           hostPath:
-            path: /var/lib/kubelet/plugins/csi.cosfs
+            path: /var/lib/kubelet/plugins/csi.os
             type: DirectoryOrCreate

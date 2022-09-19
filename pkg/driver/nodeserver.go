@@ -2,11 +2,9 @@ package driver
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/fimreal/goutils/ezap"
-	"github.com/fimreal/os-csi/pkg/cos"
 	"github.com/fimreal/os-csi/pkg/mounter"
 	csicommon "github.com/kubernetes-csi/drivers/pkg/csi-common"
 	"google.golang.org/grpc/codes"
@@ -24,13 +22,13 @@ func newNodeServer(d *csicommon.CSIDriver) *nodeServer {
 }
 
 func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
-	volumeID := req.GetVolumeId()
-	targetPath := req.GetTargetPath()
-	stagingTargetPath := req.GetStagingTargetPath()
+	volumeID := req.VolumeId
+	targetPath := req.TargetPath
+	stagingTargetPath := req.StagingTargetPath
 	bucketName, prefix := VolumeIDToBucketPrefix(volumeID)
 
 	// Check arguments
-	if req.GetVolumeCapability() == nil {
+	if req.VolumeCapability == nil {
 		return nil, status.Error(codes.InvalidArgument, "Volume capability missing in request")
 	}
 	if len(volumeID) == 0 {
@@ -62,13 +60,16 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	ezap.Infof("target %v\nreadonly %v\nvolumeId %v\nattributes %v\nmountflags %v\n",
 		targetPath, readOnly, volumeID, attrib, mountFlags)
 
-	client, err := cos.NewClientFromSecret(req.GetSecrets(), bucketName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize client: %s", err)
+	secret := req.Secrets
+	cfg := &mounter.Config{
+		AccessKeyID:     secret["accessKeyID"],
+		SecretAccessKey: secret["secretAccessKey"],
+		Endpoint:        secret["endpoint"],
+		BucketName:      bucketName,
+		Mounter:         secret["mounter"],
+		Meta:            getMeta(prefix, req.VolumeContext),
 	}
-
-	meta := getMeta(bucketName, prefix, req.VolumeContext)
-	mounter, err := mounter.New(meta, client.Config)
+	mounter, err := mounter.New(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -81,9 +82,10 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
+// 调用 fuse 卸载挂载点
 func (ns *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
-	volumeID := req.GetVolumeId()
-	targetPath := req.GetTargetPath()
+	volumeID := req.VolumeId
+	targetPath := req.TargetPath
 
 	// Check arguments
 	if len(volumeID) == 0 {
@@ -127,13 +129,17 @@ func (ns *nodeServer) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 	if !notMnt {
 		return &csi.NodeStageVolumeResponse{}, nil
 	}
-	client, err := cos.NewClientFromSecret(req.GetSecrets(), bucketName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize client: %s", err)
-	}
 
-	meta := getMeta(bucketName, prefix, req.VolumeContext)
-	mounter, err := mounter.New(meta, client.Config)
+	secret := req.Secrets
+	cfg := &mounter.Config{
+		AccessKeyID:     secret["accessKeyID"],
+		SecretAccessKey: secret["secretAccessKey"],
+		Endpoint:        secret["endpoint"],
+		BucketName:      bucketName,
+		Mounter:         secret["mounter"],
+		Meta:            getMeta(prefix, req.VolumeContext),
+	}
+	mounter, err := mounter.New(cfg)
 	if err != nil {
 		return nil, err
 	}

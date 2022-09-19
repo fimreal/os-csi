@@ -1,3 +1,6 @@
+# github.com/aliyun/aliyun-oss-go-sdk v2.2.5+incompatible
+## explicit
+github.com/aliyun/aliyun-oss-go-sdk/oss
 # github.com/clbanning/mxj v1.8.4
 ## explicit
 github.com/clbanning/mxj
@@ -83,6 +86,9 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
+# golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
+## explicit
+golang.org/x/time/rate
 # google.golang.org/genproto v0.0.0-20220519153652-3a47de7e79bd
 ## explicit; go 1.15
 google.golang.org/genproto/googleapis/rpc/status

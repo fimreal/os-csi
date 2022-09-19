@@ -9,12 +9,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fimreal/os-csi/pkg/cos"
 	"github.com/fimreal/os-csi/pkg/mounter"
 	"k8s.io/utils/mount"
 )
 
-func getMeta(bucketName, prefix string, context map[string]string) *cos.FSMeta {
+func getMeta(prefix string, context map[string]string) *mounter.FSMeta {
 	mountOptions := make([]string, 0)
 	mountOptStr := context[mounter.OptionsKey]
 	if mountOptStr != "" {
@@ -30,10 +29,10 @@ func getMeta(bucketName, prefix string, context map[string]string) *cos.FSMeta {
 		}
 	}
 	capacity, _ := strconv.ParseInt(context["capacity"], 10, 64)
-	return &cos.FSMeta{
-		BucketName:    bucketName,
-		Prefix:        prefix,
-		Mounter:       context[mounter.TypeKey],
+	return &mounter.FSMeta{
+		// BucketName: bucketName,
+		Prefix:     prefix,
+		// Mounter:       context[mounter.TypeKey],
 		MountOptions:  mountOptions,
 		CapacityBytes: capacity,
 	}
@@ -76,3 +75,25 @@ func sanitizeVolumeID(volumeID string) string {
 	}
 	return volumeID
 }
+
+// func GenConfig(req *csi.CreateVolumeRequest) *mounter.Config {
+// 	params := req.Parameters
+// 	capacityBytes := req.CapacityRange.RequiredBytes
+// 	bucketName := params[mounter.BucketKey]
+// 	volumeID := sanitizeVolumeID(req.Name)
+// 	secret := req.Secrets
+
+// return &mounter.Config{
+// 	AccessKeyID:     secret["accessKeyID"],
+// 	SecretAccessKey: secret["secretAccessKey"],
+// 	Endpoint:        secret["endpoint"],
+// 	BucketName:      bucketName,
+// 	Mounter:         secret["mounter"],
+// 	Meta: &mounter.FSMeta{
+// 		BucketName:    bucketName,
+// 		Prefix:        volumeID,
+// 		MountOptions:  []string{},
+// 		CapacityBytes: capacityBytes,
+// 	},
+// 	}
+// }

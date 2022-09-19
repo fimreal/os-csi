@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: csi-cos
+  name: csi-os
   namespace: kube-system
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-cos
+  name: csi-os
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -28,29 +28,29 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-cos
+  name: csi-os
 subjects:
   - kind: ServiceAccount
-    name: csi-cos
+    name: csi-os
     namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: csi-cos
+  name: csi-os
   apiGroup: rbac.authorization.k8s.io
 ---
 kind: DaemonSet
 apiVersion: apps/v1
 metadata:
-  name: csi-cos
+  name: csi-os
   namespace: kube-system
 spec:
   selector:
     matchLabels:
-      app: csi-cos
+      app: csi-os
   template:
     metadata:
       labels:
-        app: csi-cos
+        app: csi-os
     spec:
       tolerations:
         - key: CriticalAddonsOnly
@@ -58,7 +58,7 @@ spec:
         - operator: Exists
           effect: NoExecute
           tolerationSeconds: 300
-      serviceAccount: csi-cos
+      serviceAccount: csi-os
       hostNetwork: true
       containers:
         - name: driver-registrar
@@ -71,7 +71,7 @@ spec:
             - name: ADDRESS
               value: /csi/csi.sock
             - name: DRIVER_REG_SOCK_PATH
-              value: /var/lib/kubelet/plugins/csi.cosfs/csi.sock
+              value: /var/lib/kubelet/plugins/csi.os/csi.sock
             - name: KUBE_NODE_NAME
               valueFrom:
                 fieldRef:
@@ -81,18 +81,17 @@ spec:
               mountPath: /csi
             - name: registration-dir
               mountPath: /registration/
-        - name: csi-cos
+        - name: csi-os
           securityContext:
             privileged: true
             capabilities:
               add: ["SYS_ADMIN"]
             allowPrivilegeEscalation: true
-          image: epurs/mycsi:latest
+          image: epurs/mycsi:cosfs-ossfs
           imagePullPolicy: Always
           args:
             - "--endpoint=$(CSI_ENDPOINT)"
             - "--nodeid=$(NODE_ID)"
-            - "--v=4"
           env:
             - name: CSI_ENDPOINT
               value: unix:///csi/csi.sock
@@ -115,7 +114,7 @@ spec:
             type: DirectoryOrCreate
         - name: plugin-dir
           hostPath:
-            path: /var/lib/kubelet/plugins/csi.cosfs
+            path: /var/lib/kubelet/plugins/csi.os
             type: DirectoryOrCreate
         - name: pods-mount-dir
           hostPath:
