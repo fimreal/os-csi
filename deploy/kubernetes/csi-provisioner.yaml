@@ -99,7 +99,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/kubelet/plugins/csi.os
         - name: csi-os
-          image: epurs/mycsi:cosfs-ossfs
+          image: epurs/mycsi:latest
           imagePullPolicy: Always
           args:
             - "--endpoint=$(CSI_ENDPOINT)"

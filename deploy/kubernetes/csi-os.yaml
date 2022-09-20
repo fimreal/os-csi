@@ -87,7 +87,7 @@ spec:
             capabilities:
               add: ["SYS_ADMIN"]
             allowPrivilegeEscalation: true
-          image: epurs/mycsi:cosfs-ossfs
+          image: epurs/mycsi:latest
           imagePullPolicy: Always
           args:
             - "--endpoint=$(CSI_ENDPOINT)"
