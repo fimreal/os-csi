@@ -79,7 +79,7 @@ func fuseMount(path string, command string, args []string) error {
 
 	out, err := cmd.Output()
 	if err != nil {
-		return fmt.Errorf("error fuseMount details: \ncommand: %s\nargs: %s\noutput: %s", command, args, out)
+		return fmt.Errorf("error fuseMount details: command: %s, args: %s, output: %s", command, args, out)
 	}
 
 	return waitForMount(path, 10*time.Second)

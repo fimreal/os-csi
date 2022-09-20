@@ -49,7 +49,7 @@ func (ossfs *ossfsMounter) Mount(source string, target string) error {
 		"-o", "url=" + ossfs.url,
 	}
 	args = append(args, ossfs.meta.MountOptions...)
-	ezap.Info("cmd: ", OssfsCmd, "\nargs: ", args, "\ntarget: ", target)
+	ezap.Info("cmd: ", OssfsCmd, ", args: ", args, ", target: ", target)
 	return fuseMount(target, OssfsCmd, args)
 }
 

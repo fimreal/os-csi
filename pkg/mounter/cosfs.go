@@ -49,7 +49,7 @@ func (cosfs *cosfsMounter) Mount(source string, target string) error {
 		"-o", "url=" + cosfs.url,
 	}
 	args = append(args, cosfs.meta.MountOptions...)
-	ezap.Info("cmd: ", CosfsCmd, "\nargs: ", args, "\ntarget: ", target)
+	ezap.Info("cmd: ", CosfsCmd, ", args: ", args, ", target: ", target)
 	return fuseMount(target, CosfsCmd, args)
 }
 

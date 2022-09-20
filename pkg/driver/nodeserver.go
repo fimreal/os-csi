@@ -57,7 +57,7 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	mountFlags := req.GetVolumeCapability().GetMount().GetMountFlags()
 	attrib := req.GetVolumeContext()
 
-	ezap.Infof("target %v\nreadonly %v\nvolumeId %v\nattributes %v\nmountflags %v\n",
+	ezap.Infof("target %v, readonly %v, volumeId %v, attributes %v, mountflags %v",
 		targetPath, readOnly, volumeID, attrib, mountFlags)
 
 	secret := req.Secrets
