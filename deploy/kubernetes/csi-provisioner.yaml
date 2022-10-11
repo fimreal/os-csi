@@ -116,6 +116,4 @@ spec:
               mountPath: /var/lib/kubelet/plugins/csi.os
       volumes:
         - name: socket-dir
-          hostPath:
-            path: /var/lib/kubelet/plugins/csi.os
-            type: DirectoryOrCreate
+          emptyDir: {}

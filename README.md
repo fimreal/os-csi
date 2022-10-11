@@ -79,11 +79,9 @@ kubectl get pv
 
 0. 完善用法说明
 
-1. 解决启动顺序不同，没有正确在 ds pod 挂载的问题
+1. 解决 ds pod 重启可能导致异常
 
-2. 解决 ds pod 重启可能导致异常
-
-3. 使用自定义 prefix 创建 pvc
+2. 使用自定义 prefix 创建 pvc
 
 
 #### Reference
