@@ -14,11 +14,6 @@ type ossfsMounter struct {
 	pwFileContent string
 }
 
-const (
-	OssfsCmd         = "ossfs"
-	OssfsMounterType = "ossfs"
-)
-
 func newOssfsMounter(cfg *Config) (Mounter, error) {
 	return &ossfsMounter{
 		meta:          cfg.Meta,

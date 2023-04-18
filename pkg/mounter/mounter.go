@@ -11,9 +11,19 @@ import (
 	"time"
 
 	"github.com/fimreal/goutils/ezap"
-	"github.com/golang/glog"
 	"github.com/mitchellh/go-ps"
 	"k8s.io/utils/mount"
+)
+
+const (
+	// CosfsMounterType   = "cosfs"
+	// OssfsMounterType   = "ossfs"
+	// S3MounterType      = "s3fs"
+	// GeesefsMounterType = "geesefs"
+	CosfsCmd   = "cosfs"
+	OssfsCmd   = "ossfs"
+	S3FsCmd    = "s3fs"
+	GeeseFsCmd = "geesefs"
 )
 
 type FSMeta struct {
@@ -31,6 +41,7 @@ type Config struct {
 	Endpoint        string
 	BucketName      string
 	Mounter         string
+	Region          string
 	Meta            *FSMeta
 }
 
@@ -52,20 +63,20 @@ const (
 func New(cfg *Config) (Mounter, error) {
 	mounter := cfg.Mounter
 	switch mounter {
-	case CosfsMounterType:
+	case CosfsCmd:
 		return newCosfsMounter(cfg)
 
-	case OssfsMounterType:
+	case OssfsCmd:
 		return newOssfsMounter(cfg)
 
-	// case geesefsMounterType:
-	// 	return newGeeseFSMounter(meta, cfg)
+	case GeeseFsCmd:
+		return newGeeseFSMounter(cfg)
 
 	// case s3fsMounterType:
-	// 	return newS3fsMounter(meta, cfg)
+	// 	return newS3fsMounter(cfg)
 
 	// case rcloneMounterType:
-	// 	return newRcloneMounter(meta, cfg)
+	// 	return newRcloneMounter(cfg)
 
 	default:
 		return nil, errors.New("not found mounterType: " + mounter)
@@ -92,14 +103,14 @@ func FuseUnmount(path string) error {
 	// as fuse quits immediately, we will try to wait until the process is done
 	process, err := findFuseMountProcess(path)
 	if err != nil {
-		glog.Errorf("Error getting PID of fuse mount: %s", err)
+		ezap.Errorf("Error getting PID of fuse mount: %s", err)
 		return nil
 	}
 	if process == nil {
-		glog.Warningf("Unable to find PID of fuse mount %s, it must have finished already", path)
+		ezap.Warnf("Unable to find PID of fuse mount %s, it must have finished already", path)
 		return nil
 	}
-	glog.Infof("Found fuse pid %v of mount %s, checking if it still runs", process.Pid, path)
+	ezap.Infof("Found fuse pid %v of mount %s, checking if it still runs", process.Pid, path)
 	return waitForProcess(process, 20)
 }
 
@@ -130,11 +141,11 @@ func findFuseMountProcess(path string) (*os.Process, error) {
 	for _, p := range processes {
 		cmdLine, err := getCmdLine(p.Pid())
 		if err != nil {
-			glog.Errorf("Unable to get cmdline of PID %v: %s", p.Pid(), err)
+			ezap.Errorf("Unable to get cmdline of PID %v: %s", p.Pid(), err)
 			continue
 		}
 		if strings.Contains(cmdLine, path) {
-			glog.Infof("Found matching pid %v on path %s", p.Pid(), path)
+			ezap.Infof("Found matching pid %v on path %s", p.Pid(), path)
 			return os.FindProcess(p.Pid())
 		}
 	}
@@ -145,21 +156,21 @@ func waitForProcess(p *os.Process, limit int) error {
 	for backoff := 0; backoff < limit; backoff++ {
 		cmdLine, err := getCmdLine(p.Pid)
 		if err != nil {
-			glog.Warningf("Error checking cmdline of PID %v, assuming it is dead: %s", p.Pid, err)
+			ezap.Warnf("Error checking cmdline of PID %v, assuming it is dead: %s", p.Pid, err)
 			p.Wait()
 			return nil
 		}
 		if cmdLine == "" {
-			glog.Warning("Fuse process seems dead, returning")
+			ezap.Warn("Fuse process seems dead, returning")
 			p.Wait()
 			return nil
 		}
 		if err := p.Signal(syscall.Signal(0)); err != nil {
-			glog.Warningf("Fuse process does not seem active or we are unprivileged: %s", err)
+			ezap.Warnf("Fuse process does not seem active or we are unprivileged: %s", err)
 			p.Wait()
 			return nil
 		}
-		glog.Infof("Fuse process with PID %v still active, waiting...", p.Pid)
+		ezap.Infof("Fuse process with PID %v still active, waiting...", p.Pid)
 		time.Sleep(time.Duration(math.Pow(1.5, float64(backoff))*100) * time.Millisecond)
 	}
 	p.Release()

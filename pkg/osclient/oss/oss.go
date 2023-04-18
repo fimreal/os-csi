@@ -2,6 +2,7 @@ package oss
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
@@ -11,7 +12,7 @@ import (
 type Client struct {
 	Config *mounter.Config
 	oss    *oss.Client
-	// ctx    context.Context
+	ctx    context.Context
 }
 
 func NewClient(cfg *mounter.Config) (*Client, error) {
@@ -20,6 +21,7 @@ func NewClient(cfg *mounter.Config) (*Client, error) {
 	return &Client{
 		Config: cfg,
 		oss:    ossClient,
+		ctx:    context.Background(),
 	}, err
 }
 

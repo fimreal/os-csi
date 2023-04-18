@@ -66,6 +66,7 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		SecretAccessKey: secret["secretAccessKey"],
 		Endpoint:        secret["endpoint"],
 		BucketName:      bucketName,
+		Region:          secret["region"],
 		Mounter:         secret["mounter"],
 		Meta:            getMeta(prefix, req.VolumeContext),
 	}
@@ -136,6 +137,7 @@ func (ns *nodeServer) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 		SecretAccessKey: secret["secretAccessKey"],
 		Endpoint:        secret["endpoint"],
 		BucketName:      bucketName,
+		Region:          secret["region"],
 		Mounter:         secret["mounter"],
 		Meta:            getMeta(prefix, req.VolumeContext),
 	}

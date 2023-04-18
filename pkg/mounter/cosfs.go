@@ -6,11 +6,6 @@ import (
 	"github.com/fimreal/goutils/ezap"
 )
 
-const (
-	CosfsCmd         = "cosfs"
-	CosfsMounterType = "cosfs"
-)
-
 // Implements Mounter
 type cosfsMounter struct {
 	meta          *FSMeta

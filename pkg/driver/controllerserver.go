@@ -51,6 +51,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		SecretAccessKey: secret["secretAccessKey"],
 		Endpoint:        secret["endpoint"],
 		BucketName:      bucketName,
+		Region:          secret["region"],
 		Mounter:         secret["mounter"],
 		// Meta: &mounter.FSMeta{
 		// 	Prefix:        volumeID,
@@ -111,6 +112,7 @@ func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 		AccessKeyID:     secret["accessKeyID"],
 		SecretAccessKey: secret["secretAccessKey"],
 		Endpoint:        secret["endpoint"],
+		Region:          secret["region"],
 		BucketName:      bucketName,
 		Mounter:         secret["mounter"],
 	}
@@ -145,6 +147,7 @@ func (cs *controllerServer) ValidateVolumeCapabilities(ctx context.Context, req 
 		AccessKeyID:     secret["accessKeyID"],
 		SecretAccessKey: secret["secretAccessKey"],
 		Endpoint:        secret["endpoint"],
+		Region:          secret["region"],
 		BucketName:      bucketName,
 		Mounter:         secret["mounter"],
 	}

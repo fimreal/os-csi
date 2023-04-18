@@ -13,35 +13,14 @@ import (
 	"github.com/fimreal/os-csi/pkg/mounter"
 	"github.com/fimreal/os-csi/pkg/osclient/cos"
 	"github.com/fimreal/os-csi/pkg/osclient/oss"
+	"github.com/fimreal/os-csi/pkg/osclient/s3"
 )
 
 type Client interface {
 	BucketExists() (bool, error)
-	// CreateBucket(bucketName string) error
 	CreatePrefix(prefix string) error
 	RemovePrefix(prefix string) error
 	GetConfig() *mounter.Config
-}
-
-func NewFromSecret(secret map[string]string) (Client, error) {
-
-	mounterType := secret["mounter"]
-	cfg := &mounter.Config{
-		AccessKeyID:     secret["accessKeyID"],
-		SecretAccessKey: secret["secretAccessKey"],
-		Endpoint:        secret["endpoint"],
-		BucketName:      secret["bucketName"],
-		Mounter:         mounterType,
-	}
-
-	switch mounterType {
-	case mounter.CosfsMounterType:
-		return cos.NewClient(cfg)
-	case mounter.OssfsMounterType:
-		return oss.NewClient(cfg)
-	default:
-		return nil, errors.New("not supported mounterType: " + mounterType)
-	}
 }
 
 func New(cfg *mounter.Config) (Client, error) {
@@ -49,10 +28,12 @@ func New(cfg *mounter.Config) (Client, error) {
 	mounterType := cfg.Mounter
 
 	switch mounterType {
-	case mounter.CosfsMounterType:
+	case mounter.CosfsCmd:
 		return cos.NewClient(cfg)
-	case mounter.OssfsMounterType:
+	case mounter.OssfsCmd:
 		return oss.NewClient(cfg)
+	case mounter.GeeseFsCmd, mounter.S3FsCmd:
+		return s3.NewClient(cfg)
 	default:
 		return nil, errors.New("not supported mounterType: " + mounterType)
 	}
