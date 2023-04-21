@@ -42,14 +42,16 @@ func (geesefs *geesefsMounter) Mount(source string, target string) error {
 
 	args := []string{
 		"--endpoint", geesefs.endpoint,
-		geesefs.bucket + ":/" + geesefs.meta.Prefix,
-		target,
 		"-o", "allow_other",
 		"--log-file", "/dev/stderr",
 	}
 	if geesefs.region != "" {
 		args = append(args, "--region", geesefs.region)
 	}
+	args = append(args,
+		geesefs.bucket+":/"+geesefs.meta.Prefix,
+		target,
+	)
 	args = append(args, geesefs.meta.MountOptions...)
 	ezap.Info("cmd: ", GeeseFsCmd, ", args: ", args, ", target: ", target)
 	return fuseMount(target, GeeseFsCmd, args)

@@ -26,7 +26,7 @@ func NewClient(cfg *mounter.Config) (*Client, error) {
 	}
 	ssl := u.Scheme == "https"
 
-	minioClient, err := minio.New(cfg.Endpoint, &minio.Options{
+	minioClient, err := minio.New(u.Host, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.AccessKeyID, cfg.SecretAccessKey, cfg.Region),
 		Secure: ssl,
 	})

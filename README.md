@@ -28,6 +28,7 @@ metadata:
 stringData:
   accessKeyID: xxxx
   secretAccessKey: xxxx
+  # region:
   # endpoint 写访问地址，例如 <region>.xxx.xxx 不包含 bucket 名字
   endpoint: http://cos.ap-beijing.myqcloud.com
   # 使用的挂载命令，选择时注意镜像是否支持，默认可选 cosfs、ossfs。也用来区分不同服务商
